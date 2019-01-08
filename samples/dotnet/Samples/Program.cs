@@ -19,12 +19,14 @@ namespace Hyperledger.Indy.Samples
         {
             await Pool.SetProtocolVersionAsync(2);
 
-            await WalletDemo.Execute();
-            await NonSecretsDemo.Execute();
-            await AnonCredsDemo.Execute();
-            await AnonCredsRevocationDemo.Execute();
-            await LedgerDemo.Execute();
-            await CryptoDemo.Execute();
+            await GettingStarted.Execute();
+
+            //await WalletDemo.Execute();
+            //await NonSecretsDemo.Execute();
+            //await AnonCredsDemo.Execute();
+            //await AnonCredsRevocationDemo.Execute();
+            //await LedgerDemo.Execute();
+            //await CryptoDemo.Execute();
         }
     }
 }
