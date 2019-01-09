@@ -430,21 +430,24 @@ namespace Hyperledger.Indy.Samples
                 await AnonCreds.ProverStoreCredentialAsync(aliceWallet, null, pccrr.CredentialRequestMetadataJson,
                                                                 adr.authdecryptedDidInfoJson, faberTranscriptCredDefResult.ObjectJson, null);
 
-                //    logger.info("==============================")
-                //    logger.info("=== Apply for the job with Acme ==")
-                //    logger.info("==============================")
-                //    logger.info("== Apply for the job with Acme - Onboarding ==")
-                //    logger.info("------------------------------")
+                Console.WriteLine("==============================");
+                Console.WriteLine("=== Apply for the job with Acme ==");
+                Console.WriteLine("==============================");
+                Console.WriteLine("== Apply for the job with Acme - Onboarding ==");
+                Console.WriteLine("------------------------------");
 
                 //    alice_wallet, acme_alice_key, alice_acme_did, alice_acme_key, acme_alice_connection_response = \
                 //        await onboarding(pool_handle, "Acme", acme_wallet, acme_did, "Alice", alice_wallet, alice_wallet_config,
                 //                         alice_wallet_credentials)
 
-                //    logger.info("==============================")
-                //    logger.info("== Apply for the job with Acme - Transcript proving ==")
-                //    logger.info("------------------------------")
+                OnboardingResult acmeAliceOnboarding = await Onboarding(pool, "Acme", acmeWallet, acmeDid, "Alice", aliceWallet, aliceWalletConfig, aliceWalletCredentials);
 
-                //    logger.info("\"Acme\" -> Create \"Job-Application\" Proof Request")
+                Console.WriteLine("==============================");
+                Console.WriteLine("== Apply for the job with Acme - Transcript proving ==");
+                Console.WriteLine("------------------------------");
+
+                Console.WriteLine("\"Acme\" -> Create \"Job-Application\" Proof Request");
+
                 //    job_application_proof_request_json = json.dumps({
                 //        'nonce': '1432422343242122312411212',
                 //        'name': 'Job-Application',
