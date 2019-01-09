@@ -356,25 +356,33 @@ namespace Hyperledger.Indy.Samples
                 Console.WriteLine("\"Alice\" -> Get \"Faber Transcript\" Credential Definition from Ledger");
                 //    (faber_transcript_cred_def_id, faber_transcript_cred_def) = \
                 //        await get_cred_def(pool_handle, alice_faber_did, authdecrypted_transcript_cred_offer['cred_def_id'])
-//TODO                ParseResponseResult getCredDefAliceTranscript = await GetCredDef(pool, aliceFaberDid, authDecryptedTranscriptOfferFaber);
+                ParseResponseResult faberTranscriptCredDefResult = await GetCredDef(pool, aliceFaberDid, (string)authDecryptedTranscriptOfferFaber.authcryptedDidInfo["cred_def_id"]);
 
-                //    logger.info("\"Alice\" -> Create \"Transcript\" Credential Request for Faber")
+                Console.WriteLine("\"Alice\" -> Create \"Transcript\" Credential Request for Faber");
                 //    (transcript_cred_request_json, transcript_cred_request_metadata_json) = \
                 //        await anoncreds.prover_create_credential_req(alice_wallet, alice_faber_did,
                 //                                                     authdecrypted_transcript_cred_offer_json,
                 //                                                     faber_transcript_cred_def, alice_master_secret_id)
 
-                //    logger.info("\"Alice\" -> Authcrypt \"Transcript\" Credential Request for Faber")
+                ProverCreateCredentialRequestResult pccrr = await AnonCreds.ProverCreateCredentialReqAsync(aliceWallet, aliceFaberDid, 
+                                                                            authDecryptedTranscriptOfferFaber.authdecryptedDidInfoJson, 
+                                                                            faberTranscriptCredDefResult.ObjectJson, aliceMasterSecretId);
+
+                Console.WriteLine("\"Alice\" -> Authcrypt \"Transcript\" Credential Request for Faber");
                 //    authcrypted_transcript_cred_request = await crypto.auth_crypt(alice_wallet, alice_faber_key, faber_alice_verkey,
                 //                                                                  transcript_cred_request_json.encode('utf-8'))
 
-                //    logger.info("\"Alice\" -> Send authcrypted \"Transcript\" Credential Request to Faber")
+                var authcryptedTranscriptCredRequest = await Crypto.AuthCryptAsync(aliceWallet, aliceFaberVerkey, faberAliceKey, Encoding.UTF8.GetBytes(pccrr.CredentialRequestJson));
 
-                //    logger.info("\"Faber\" -> Authdecrypt \"Transcript\" Credential Request from Alice")
+                Console.WriteLine("\"Alice\" -> Send authcrypted \"Transcript\" Credential Request to Faber");
+
+                Console.WriteLine("\"Faber\" -> Authdecrypt \"Transcript\" Credential Request from Alice");
                 //    alice_faber_verkey, authdecrypted_transcript_cred_request_json, _ = \
                 //        await auth_decrypt(faber_wallet, faber_alice_key, authcrypted_transcript_cred_request)
 
-                //    logger.info("\"Faber\" -> Create \"Transcript\" Credential for Alice")
+                AuthDecryptResult faberTranscriptCredReqAlice = await AuthDecrypt(faberWallet, faberAliceKey, authcryptedTranscriptCredRequest);
+
+                Console.WriteLine("\"Faber\" -> Create \"Transcript\" Credential for Alice");
                 //    transcript_cred_values = json.dumps({
                 //        "first_name": {"raw": "Alice", "encoded": "1139481716457488690172217916278103335"},
                 //        "last_name": {"raw": "Garcia", "encoded": "5321642780241790123587902456789123452"},
@@ -385,24 +393,42 @@ namespace Hyperledger.Indy.Samples
                 //        "average": {"raw": "5", "encoded": "5"}
                 //    })
 
+                var transcriptCredValues = JsonConvert.SerializeObject(new Transcript() {   first_name = new CredValue { raw = "Alice", encoded = "1139481716457488690172217916278103335" },
+                                                                                            last_name  = new CredValue { raw = "Garcia", encoded = "5321642780241790123587902456789123452"},
+                                                                                            degree     = new CredValue { raw = "Bachelor of Science, Marketing", encoded = "12434523576212321"},
+                                                                                            status     = new CredValue { raw = "graduated", encoded = "2213454313412354"},
+                                                                                            ssn        = new CredValue { raw = "123-45-6789", encoded = "3124141231422543541"},
+                                                                                            year       = new CredValue { raw = "2015",  encoded = "2015"},
+                                                                                            average    = new CredValue { raw = "5", encoded = "5"}
+                });
+
                 //    transcript_cred_json, _, _ = \
                 //        await anoncreds.issuer_create_credential(faber_wallet, transcript_cred_offer_json,
                 //                                                 authdecrypted_transcript_cred_request_json,
                 //                                                 transcript_cred_values, None, None)
 
-                //    logger.info("\"Faber\" -> Authcrypt \"Transcript\" Credential for Alice")
+                IssuerCreateCredentialResult iccr = await AnonCreds.IssuerCreateCredentialAsync(faberWallet, transcriptCredOfferJson, faberTranscriptCredReqAlice.authdecryptedDidInfoJson, transcriptCredValues, null, null);
+
+                Console.WriteLine("\"Faber\" -> Authcrypt \"Transcript\" Credential for Alice");
                 //    authcrypted_transcript_cred_json = await crypto.auth_crypt(faber_wallet, faber_alice_key, alice_faber_verkey,
                 //                                                               transcript_cred_json.encode('utf-8'))
 
-                //    logger.info("\"Faber\" -> Send authcrypted \"Transcript\" Credential to Alice")
+                var authcryptedTranscriptCred = await Crypto.AuthCryptAsync(faberWallet, faberAliceKey, aliceFaberVerkey, Encoding.UTF8.GetBytes(iccr.CredentialJson));
 
-                //    logger.info("\"Alice\" -> Authdecrypted \"Transcript\" Credential from Faber")
+                Console.WriteLine("\"Faber\" -> Send authcrypted \"Transcript\" Credential to Alice");
+
+                Console.WriteLine("\"Alice\" -> Authdecrypted \"Transcript\" Credential from Faber");
                 //    _, authdecrypted_transcript_cred_json, _ = \
                 //        await auth_decrypt(alice_wallet, alice_faber_key, authcrypted_transcript_cred_json)
 
-                //    logger.info("\"Alice\" -> Store \"Transcript\" Credential from Faber")
+                AuthDecryptResult adr = await AuthDecrypt(aliceWallet, aliceFaberVerkey, authcryptedTranscriptCred);
+
+                Console.WriteLine("\"Alice\" -> Store \"Transcript\" Credential from Faber");
                 //    await anoncreds.prover_store_credential(alice_wallet, None, transcript_cred_request_metadata_json,
                 //                                            authdecrypted_transcript_cred_json, faber_transcript_cred_def, None)
+
+                await AnonCreds.ProverStoreCredentialAsync(aliceWallet, null, pccrr.CredentialRequestMetadataJson,
+                                                                adr.authdecryptedDidInfoJson, faberTranscriptCredDefResult.ObjectJson, null);
 
                 //    logger.info("==============================")
                 //    logger.info("=== Apply for the job with Acme ==")
@@ -1080,7 +1106,7 @@ namespace Hyperledger.Indy.Samples
 
         public static async Task<ParseResponseResult> GetCredDef(Pool pool, string did, string schemaId)
         {
-            var getRequest = await Ledger.BuildGetSchemaRequestAsync(did, schemaId);
+            var getRequest = await Ledger.BuildGetCredDefRequestAsync(did, schemaId);
             var getResponse = await Ledger.SubmitRequestAsync(pool, getRequest);
             return await Ledger.ParseGetCredDefResponseAsync(getResponse);
         }
@@ -1150,6 +1176,23 @@ namespace Hyperledger.Indy.Samples
         //    run_coroutine(run)
         //    time.sleep(1)  # FIXME waiting for libindy thread complete
 
+    }
+
+    public class Transcript
+    {
+        public CredValue first_name { get; set; }
+        public CredValue last_name { get; set; }
+        public CredValue degree { get; set; }
+        public CredValue status { get; set; }
+        public CredValue ssn { get; set; }
+        public CredValue year { get; set; }
+        public CredValue average { get; set; }
+    }
+
+    public class CredValue
+    {
+        public string raw { get; set; }
+        public string encoded { get; set; }
     }
 
     public class AuthDecryptResult
