@@ -119,8 +119,8 @@ namespace Hyperledger.Indy.Samples
                 //                                       government_steward_key, 'TRUST_ANCHOR')
 
                 var governmentDid = await GetVerinym(pool, "Sovrin Steward", stewardWallet, stewardDid,
-                                                                governmentOnboarding.fromToVarKey, "Government", 
-                                                                governmentOnboarding.toWallet, 
+                                                                governmentOnboarding.fromToVarKey, "Government",
+                                                                governmentOnboarding.toWallet,
                                                                 governmentOnboarding.toFromDid,
                                                                 governmentOnboarding.toFromVarKey, "TRUST_ANCHOR");
 
@@ -224,7 +224,7 @@ namespace Hyperledger.Indy.Samples
                 //                                             json.dumps(['first_name', 'last_name', 'salary', 'employee_status',
                 //                                                         'experience']))
 
-                var jobCertAttributes = JsonConvert.SerializeObject(new string[] { "first_name", "last_name", "salary", "employee_status","experience"});
+                var jobCertAttributes = JsonConvert.SerializeObject(new string[] { "first_name", "last_name", "salary", "employee_status", "experience" });
                 IssuerCreateSchemaResult jobCertCreateSchemaResult = await AnonCreds.IssuerCreateSchemaAsync(governmentDid, "Job-Certificate", "0.2", jobCertAttributes);
                 var jobCertificateSchemaId = jobCertCreateSchemaResult.SchemaId;
                 var jobCertificateSchema = jobCertCreateSchemaResult.SchemaJson;
@@ -239,7 +239,7 @@ namespace Hyperledger.Indy.Samples
                 //        await anoncreds.issuer_create_schema(government_did, 'Transcript', '1.2',
                 //                                             json.dumps(['first_name', 'last_name', 'degree', 'status',
                 //                                                         'year', 'average', 'ssn']))
-                
+
                 var transcriptAttributes = JsonConvert.SerializeObject(new string[] { "first_name", "last_name", "degree", "status", "year", "average", "ssn" });
                 IssuerCreateSchemaResult transcriptIssuerCreateSchemaResult = await AnonCreds.IssuerCreateSchemaAsync(governmentDid, "Transcript", "1.2", transcriptAttributes);
                 var transcriptSchemaId = transcriptIssuerCreateSchemaResult.SchemaId;
@@ -364,8 +364,8 @@ namespace Hyperledger.Indy.Samples
                 //                                                     authdecrypted_transcript_cred_offer_json,
                 //                                                     faber_transcript_cred_def, alice_master_secret_id)
 
-                ProverCreateCredentialRequestResult pccrr = await AnonCreds.ProverCreateCredentialReqAsync(aliceWallet, aliceFaberDid, 
-                                                                            authDecryptedTranscriptOfferFaber.authdecryptedDidInfoJson, 
+                ProverCreateCredentialRequestResult pccrr = await AnonCreds.ProverCreateCredentialReqAsync(aliceWallet, aliceFaberDid,
+                                                                            authDecryptedTranscriptOfferFaber.authdecryptedDidInfoJson,
                                                                             faberTranscriptCredDefResult.ObjectJson, aliceMasterSecretId);
 
                 Console.WriteLine("\"Alice\" -> Authcrypt \"Transcript\" Credential Request for Faber");
@@ -393,13 +393,15 @@ namespace Hyperledger.Indy.Samples
                 //        "average": {"raw": "5", "encoded": "5"}
                 //    })
 
-                var transcriptCredValues = JsonConvert.SerializeObject(new Transcript() {   first_name = new CredValue { raw = "Alice", encoded = "1139481716457488690172217916278103335" },
-                                                                                            last_name  = new CredValue { raw = "Garcia", encoded = "5321642780241790123587902456789123452"},
-                                                                                            degree     = new CredValue { raw = "Bachelor of Science, Marketing", encoded = "12434523576212321"},
-                                                                                            status     = new CredValue { raw = "graduated", encoded = "2213454313412354"},
-                                                                                            ssn        = new CredValue { raw = "123-45-6789", encoded = "3124141231422543541"},
-                                                                                            year       = new CredValue { raw = "2015",  encoded = "2015"},
-                                                                                            average    = new CredValue { raw = "5", encoded = "5"}
+                var transcriptCredValues = JsonConvert.SerializeObject(new Transcript()
+                {
+                    first_name = new CredValue { raw = "Alice", encoded = "1139481716457488690172217916278103335" },
+                    last_name = new CredValue { raw = "Garcia", encoded = "5321642780241790123587902456789123452" },
+                    degree = new CredValue { raw = "Bachelor of Science, Marketing", encoded = "12434523576212321" },
+                    status = new CredValue { raw = "graduated", encoded = "2213454313412354" },
+                    ssn = new CredValue { raw = "123-45-6789", encoded = "3124141231422543541" },
+                    year = new CredValue { raw = "2015", encoded = "2015" },
+                    average = new CredValue { raw = "5", encoded = "5" }
                 });
 
                 //    transcript_cred_json, _, _ = \
@@ -442,6 +444,10 @@ namespace Hyperledger.Indy.Samples
 
                 OnboardingResult acmeAliceOnboarding = await Onboarding(pool, "Acme", acmeWallet, acmeDid, "Alice", aliceWallet, aliceWalletConfig, aliceWalletCredentials);
 
+                var acmeAliceDid = acmeAliceOnboarding.toFromDid;
+                var acmeAliceKey = acmeAliceOnboarding.fromToVarKey;
+                var acmeAliceConnectionResponse = (JObject)JsonConvert.DeserializeObject(acmeAliceOnboarding.decryptedConnectionJson);
+                
                 Console.WriteLine("==============================");
                 Console.WriteLine("== Apply for the job with Acme - Transcript proving ==");
                 Console.WriteLine("------------------------------");
@@ -485,25 +491,56 @@ namespace Hyperledger.Indy.Samples
                 //        }
                 //    })
 
-                //    logger.info("\"Acme\" -> Get key for Alice did")
+                var jobApplicationProofRequestJson = "{" +
+                           "                    \"nonce\":\"1432422343242122312411212\",\n" +
+                           "                    \"name\":\"Job-Application\",\n" +
+                           "                    \"version\":\"0.1\", " +
+                           "                    \"requested_attributes\": {" +
+                           "                          \"attr1_referent\":{\"name\":\"first_name\"}," +
+                           "                          \"attr2_referent\":{\"name\":\"last_name\"}," +
+                           "                          \"attr3_referent\":{\"name\":\"degree\"," +
+                           "                                              \"restrictions\": [{\"cred_def_id\": \"" + faberTranscriptCredDefId + "\"}]" +
+                           "                                             }," +
+                           "                          \"attr4_referent\":{\"name\":\"status\"," +
+                           "                                              \"restrictions\": [{\"cred_def_id\": \"" + faberTranscriptCredDefId + "\"}]" +
+                           "                                             }," +
+                           "                          \"attr5_referent\":{\"name\":\"ssn\"," +
+                           "                                              \"restrictions\": [{\"cred_def_id\": \"" + faberTranscriptCredDefId + "\"}]" +
+                           "                                             }," +
+                           "                          \"attr6_referent\":{\"name\":\"phone_number\"}" +
+                           "                     }," +
+                           "                    \"requested_predicates\":{" +
+                           "                         \"predicate1_referent\":{\"name\":\"average\",\"p_type\":\">=\",\"p_value\":4, \"restrictions\": [{\"cred_def_id\": \"" + faberTranscriptCredDefId + "\"}] }" +
+                           "                    }" +
+                           "                  }";
+
+                Console.WriteLine("\"Acme\" -> Get key for Alice did");
                 //    alice_acme_verkey = await did.key_for_did(pool_handle, acme_wallet, acme_alice_connection_response['did'])
 
-                //    logger.info("\"Acme\" -> Authcrypt \"Job-Application\" Proof Request for Alice")
+                var aliceAcmeVerkey = await Did.KeyForDidAsync(pool, acmeWallet, (string)acmeAliceConnectionResponse.GetValue("did"));
+
+                Console.WriteLine("\"Acme\" -> Authcrypt \"Job-Application\" Proof Request for Alice");
                 //    authcrypted_job_application_proof_request_json = \
                 //        await crypto.auth_crypt(acme_wallet, acme_alice_key, alice_acme_verkey,
                 //                                job_application_proof_request_json.encode('utf-8'))
 
-                //    logger.info("\"Acme\" -> Send authcrypted \"Job-Application\" Proof Request to Alice")
+                var authcryptedJobApplicationProofRequestJson = await Crypto.AuthCryptAsync(acmeWallet, acmeAliceKey, aliceAcmeVerkey, Encoding.UTF8.GetBytes(jobApplicationProofRequestJson));
 
-                //    logger.info("\"Alice\" -> Authdecrypt \"Job-Application\" Proof Request from Acme")
+                Console.WriteLine("\"Acme\" -> Send authcrypted \"Job-Application\" Proof Request to Alice");
+
+                Console.WriteLine("\"Alice\" -> Authdecrypt \"Job-Application\" Proof Request from Acme");
                 //    acme_alice_verkey, authdecrypted_job_application_proof_request_json, _ = \
                 //        await auth_decrypt(alice_wallet, alice_acme_key, authcrypted_job_application_proof_request_json)
 
-                //    logger.info("\"Alice\" -> Get credentials for \"Job-Application\" Proof Request")
+                AuthDecryptResult aliceAuthDecrpytResult = await AuthDecrypt(aliceWallet, aliceAcmeVerkey, authcryptedJobApplicationProofRequestJson);
+
+                Console.WriteLine("\"Alice\" -> Get credentials for \"Job-Application\" Proof Request");
 
                 //    search_for_job_application_proof_request = \
                 //        await anoncreds.prover_search_credentials_for_proof_req(alice_wallet,
                 //                                                                authdecrypted_job_application_proof_request_json, None)
+
+                var searchForJobApplicationProofRequest = await AnonCreds.ProverSearchCredentialsForProofRequestAsync(aliceWallet, aliceAuthDecrpytResult.authdecryptedDidInfoJson, null);
 
                 //    cred_for_attr1 = await get_credential_for_referent(search_for_job_application_proof_request, 'attr1_referent')
                 //    cred_for_attr2 = await get_credential_for_referent(search_for_job_application_proof_request, 'attr2_referent')
@@ -513,7 +550,16 @@ namespace Hyperledger.Indy.Samples
                 //    cred_for_predicate1 = \
                 //        await get_credential_for_referent(search_for_job_application_proof_request, 'predicate1_referent')
 
+                var credForAttr1 = await GetCredentialForReferent(searchForJobApplicationProofRequest, "attr1_referent");
+                var credForAttr2 = await GetCredentialForReferent(searchForJobApplicationProofRequest, "attr2_referent");
+                var credForAttr3 = await GetCredentialForReferent(searchForJobApplicationProofRequest, "attr3_referent");
+                var credForAttr4 = await GetCredentialForReferent(searchForJobApplicationProofRequest, "attr4_referent");
+                var credForAttr5 = await GetCredentialForReferent(searchForJobApplicationProofRequest, "attr5_referent");
+                var credForPredicate1 = await GetCredentialForReferent(searchForJobApplicationProofRequest, "predicate1_referent");
+
                 //    await anoncreds.prover_close_credentials_search_for_proof_req(search_for_job_application_proof_request)
+
+                await AnonCreds.ProverCloseCredentialsSearchForProofRequestAsync(searchForJobApplicationProofRequest);
 
                 //    creds_for_job_application_proof = {cred_for_attr1['referent']: cred_for_attr1,
                 //                                       cred_for_attr2['referent']: cred_for_attr2,
@@ -522,8 +568,13 @@ namespace Hyperledger.Indy.Samples
                 //                                       cred_for_attr5['referent']: cred_for_attr5,
                 //                                       cred_for_predicate1['referent']: cred_for_predicate1}
 
+                Dictionary<string, string> credsForJobApplicationProof = new Dictionary<string, string>();
+                // credsForJobApplicationProof.Add(
+
                 //    schemas_json, cred_defs_json, revoc_states_json = \
                 //        await prover_get_entities_from_ledger(pool_handle, alice_faber_did, creds_for_job_application_proof, 'Alice')
+
+                ProverGetEntitiesFromLedgerResult pgeflr = await ProverGetEntitiesFromLedger(pool, aliceFaberDid, credsForJobApplicationProof, "Alice");
 
                 //    logger.info("\"Alice\" -> Create \"Job-Application\" Proof")
                 //    job_application_requested_creds_json = json.dumps({
@@ -922,7 +973,7 @@ namespace Hyperledger.Indy.Samples
 
         //async def onboarding(pool_handle, _from, from_wallet, from_did, to, to_wallet: Optional[str], to_wallet_config: str,
         //                     to_wallet_credentials: str):
-        public static async Task<OnboardingResult> Onboarding(Pool pool, string from, Wallet fromWallet, string fromDid, string to, Wallet toWallet, string toWalletConfig, string toWalletCredentials )
+        public static async Task<OnboardingResult> Onboarding(Pool pool, string from, Wallet fromWallet, string fromDid, string to, Wallet toWallet, string toWalletConfig, string toWalletCredentials)
         {
 
             Console.WriteLine("\"{0}\" -> Create and store in Wallet \"{1} {2}\" DID", from, from, to);
@@ -969,7 +1020,7 @@ namespace Hyperledger.Indy.Samples
 
             Console.WriteLine("\"{0}\" -> Get key for did from \"{1}\" connection request", to, from);
             //    from_to_verkey = await did.key_for_did(pool_handle, to_wallet, connection_request['did'])
-            var _fromToVerKey  = await Did.KeyForDidAsync(pool, toWallet, connectionRequest["did"]);
+            var _fromToVerKey = await Did.KeyForDidAsync(pool, toWallet, connectionRequest["did"]);
 
             Console.WriteLine("\"{0}\" -> Anoncrypt connection response for \"{1}\" with \"{2} {3}\" DID, verkey and nonce", to, from, to, from);
             //    connection_response = json.dumps({
@@ -979,12 +1030,12 @@ namespace Hyperledger.Indy.Samples
             //    })
             //    anoncrypted_connection_response = await crypto.anon_crypt(from_to_verkey, connection_response.encode('utf-8'))
 
-            var anoncryptedConnectionJson = JsonConvert.SerializeObject(new { did = toFromDid, verKey = toFromVerKey, nounce = connectionRequest["nonce"] }); 
+            var anoncryptedConnectionJson = JsonConvert.SerializeObject(new { did = toFromDid, verKey = toFromVerKey, nounce = connectionRequest["nonce"] });
             var anoncryptedConnectionResponse = await Crypto.AnonCryptAsync(_fromToVarKey, Encoding.UTF8.GetBytes(anoncryptedConnectionJson));
 
             //    logger.info("\"{}\" -> Send anoncrypted connection response to \"{}\"".format(to, _from))
 
-            Console.WriteLine("\"{0}\" -> Send anoncrypted connection response to \"{1}\"",to, from);
+            Console.WriteLine("\"{0}\" -> Send anoncrypted connection response to \"{1}\"", to, from);
 
             //    logger.info("\"{}\" -> Anondecrypt connection response from \"{}\"".format(_from, to))
             //    decrypted_connection_response = \
@@ -1050,11 +1101,11 @@ namespace Hyperledger.Indy.Samples
             Console.WriteLine("\"{0}\" -> Send Nym to Ledger for \"{1} DID\" with {2} Role", from, to, role);
             //    await send_nym(pool_handle, from_wallet, from_did, authdecrypted_did_info['did'],
             //                   authdecrypted_did_info['verkey'], role)
-            await SendNym(pool, fromWallet, fromDid, 
-                (string)authDecryptResult.authcryptedDidInfo["did"], 
-                (string)authDecryptResult.authcryptedDidInfo["verkey"], 
+            await SendNym(pool, fromWallet, fromDid,
+                (string)authDecryptResult.authcryptedDidInfo["did"],
+                (string)authDecryptResult.authcryptedDidInfo["verkey"],
                 role);
-            
+
             //    return to_did
             return _toDid;
         }
@@ -1093,7 +1144,7 @@ namespace Hyperledger.Indy.Samples
         //    get_schema_request = await ledger.build_get_schema_request(_did, schema_id)
         //    get_schema_response = await ledger.submit_request(pool_handle, get_schema_request)
         //    return await ledger.parse_get_schema_response(get_schema_response)
-    
+
         public static async Task<ParseResponseResult> GetSchema(Pool pool, string did, string schemaId)
         {
             var getSchemaRequest = await Ledger.BuildGetSchemaRequestAsync(did, schemaId);
@@ -1120,6 +1171,13 @@ namespace Hyperledger.Indy.Samples
         //        await anoncreds.prover_fetch_credentials_for_proof_req(search_handle, referent, 10))
         //    return credentials[0]['cred_info']
 
+        public static async Task<string> GetCredentialForReferent(CredentialSearchForProofRequest searchHandle, string referent)
+        {
+            var credentialsJson = await AnonCreds.ProverFetchCredentialsForProofRequestAsync(searchHandle, referent, 10);
+            var credentials = JArray.Parse(credentialsJson);
+            var credInfoJson =  JsonConvert.SerializeObject(credentials[0]["cred_info"]);
+            return credInfoJson;
+        }
 
         //async def prover_get_entities_from_ledger(pool_handle, _did, identifiers, actor):
         //    schemas = {}
@@ -1138,6 +1196,23 @@ namespace Hyperledger.Indy.Samples
         //            pass  # TODO Create Revocation States
 
         //    return json.dumps(schemas), json.dumps(cred_defs), json.dumps(rev_states)
+
+        public static async Task<ProverGetEntitiesFromLedgerResult> ProverGetEntitiesFromLedger(Pool pool, string did, Dictionary<string,string> identifiers, string actor)
+        {
+            ProverGetEntitiesFromLedgerResult _results = new ProverGetEntitiesFromLedgerResult();
+
+            foreach (var item in identifiers)
+            {
+                Console.WriteLine("\"{0}\" -> Get Schema from Ledger", actor);
+                //ParseResponseResult _getSchema = await GetSchema(pool, did, item["schema_id"]);
+                //_results.schemas.add(
+
+                Console.WriteLine("\"{0}\" -> Get Claim Definition from Ledger", actor);
+                //ParseResponseResult _getCredDef = await GetCredDef(pool, did, item["cred_def_id"]);
+                //_results.credDefs.add(
+            }
+            return _results;
+        }
 
 
         //async def verifier_get_entities_from_ledger(pool_handle, _did, identifiers, actor):
@@ -1181,6 +1256,14 @@ namespace Hyperledger.Indy.Samples
 
     }
 
+    public class ProverGetEntitiesFromLedgerResult
+    {
+        public string schemas { get; set; }
+        public string credDefs { get; set; }
+        public string revRegDefs { get; set; }
+        public string revRegs { get; set; }
+    }
+
     public class Transcript
     {
         public CredValue first_name { get; set; }
@@ -1213,6 +1296,4 @@ namespace Hyperledger.Indy.Samples
         public string toFromVarKey { get; set; }
         public string decryptedConnectionJson { get; set; }
     }
-
-
 }
